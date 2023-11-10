@@ -1,0 +1,90 @@
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
+
+// Configuração do display LCD com endereço I2C
+LiquidCrystal_I2C lcd(0x27, 16, 2);
+
+const int numSensors = 6;
+const int sensorPins[numSensors] = {2, 3, 4, 5, 6, 7}; // Conecte os sensores aos pinos digitais 2 a 7
+const int sensorPositions[numSensors] = {0, 20, 40, 60, 80, 100}; // Posições dos sensores em centímetros
+unsigned long sensorTimes[numSensors] = {0};
+
+const int angleOfInclination = 45; // Ângulo de inclinação do plano em graus
+const float distanceBetweenSensors = 20.0; // Distância entre os sensores em centímetros
+
+void setup() {
+  // Inicializa o display LCD
+  lcd.init();
+  lcd.backlight();
+  lcd.clear();
+
+  // Configura os pinos dos sensores como entrada
+  for (int i = 0; i < numSensors; i++) {
+    pinMode(sensorPins[i], INPUT);
+  }
+
+  // Inicia a comunicação serial para depuração
+  Serial.begin(9600);
+  Serial.println("Iniciando experimento...");
+}
+
+void loop() {
+  // Limpa o display e exibe o cabeçalho da tabela
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("Posicao (cm)  Tempo (ms)");
+
+  // Inicializa o cronômetro quando o primeiro sensor é ativado
+  while (digitalRead(sensorPins[0]) == LOW) {
+    // Aguarda a esfera passar pelo primeiro sensor
+  }
+
+  unsigned long startTime = millis();
+
+  // Loop através dos sensores restantes
+  for (int i = 1; i < numSensors; i++) {
+    // Aguarda a esfera passar pelo sensor atual
+    while (digitalRead(sensorPins[i]) == LOW) {
+      // Aguarda
+    }
+
+    unsigned long endTime = millis();
+    unsigned long elapsedTime = endTime - startTime;
+
+    sensorTimes[i] = elapsedTime;
+
+    // Exibe os resultados no display LCD
+    lcd.setCursor(0, i);
+    lcd.print(sensorPositions[i]);
+    lcd.print("            "); // Limpa a linha
+    lcd.setCursor(12, i);
+    lcd.print(sensorTimes[i]);
+
+    delay(500); // Aguarda um pouco antes de passar para o próximo sensor
+
+    startTime = endTime; // Atualiza o início para o próximo sensor
+  }
+
+  // Calcula a aceleração média
+  float totalDistance = distanceBetweenSensors * (numSensors - 1);
+  float totalTime = sensorTimes[numSensors - 1] / 1000.0; // Converte para segundos
+  float averageAcceleration = (2 * totalDistance) / pow(totalTime, 2);
+
+  // Mostra a aceleração média no display LCD
+  lcd.setCursor(0, 7);
+  lcd.print("Aceleracao Media (m/s^2):");
+  lcd.setCursor(23, 7);
+  lcd.print(averageAcceleration, 2);
+
+  // Calcula a aceleração da gravidade empiricamente
+  float gravityAcceleration = averageAcceleration / sin(radians(angleOfInclination));
+
+  // Mostra a aceleração da gravidade no display LCD
+  lcd.setCursor(0, 8);
+  lcd.print("Aceleracao Gravidade (m/s^2):");
+  lcd.setCursor(26, 8);
+  lcd.print(gravityAcceleration, 2);
+
+  // Aguarda
+  delay(10000);
+}
